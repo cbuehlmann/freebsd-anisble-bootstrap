@@ -1,0 +1,49 @@
+---
+- hosts: all
+  vars:
+    deployer_pub_key: "{{ lookup('file', '/root/.ssh/deployer.pub') }}"
+
+  tasks:
+  - pkgng:
+      name: sudo
+
+  - user:
+      name: deployer
+      comment: "Deployer account used by automation"
+      group: wheel
+      groups: wheel
+      password: no
+
+  - name: Add .ssh directories
+    file:
+        path: /home/deployer/.ssh
+        state: directory
+        mode: 0700
+        owner: deployer
+        group: wheel
+
+  - name: Add ssh keys
+    lineinfile:
+        dest: /home/deployer/.ssh/authorized_keys
+        state: present
+        create: yes
+        line: "{{ deployer_pub_key }}"
+        owner: deployer
+        group: wheel
+        mode: 0640
+
+  - name: Add include subdirectory into sudoers configuration
+    lineinfile:
+      path: /usr/local/etc/sudoers
+      state: present
+      line: "#includedir /usr/local/etc/sudoers.d"
+      create: no
+
+  - name: Add to sudoers
+    copy:
+        dest: /usr/local/etc/sudoers.d/deployer
+        content: |
+                 deployer ALL=(ALL) NOPASSWD:ALL
+                 #
+
+
